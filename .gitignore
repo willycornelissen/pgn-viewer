@@ -1,0 +1,67 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Ambientes Virtuais (O mais importante!)
+.venv/
+venv/
+ENV/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller (Se você converter seu script em .exe)
+*.manifest
+*.spec
+
+# Logs
+pip-log.txt
+sqlite3.log
+*.log
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Variáveis de Ambiente (Segurança!)
+.env
+.venv
+env.bak
+venv.bak
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs (VS Code, PyCharm)
+.vscode/
+.idea/
