@@ -1,0 +1,9 @@
+[Event "Exemplo de Anotações"]
+[Site "Chess.com"]
+[Date "2026.02.27"]
+[Round "1"]
+[White "Enxadrista"]
+[Black "Gemini-CLI"]
+[Result "1-0"]
+
+1. e4 {Controle do centro} e5 2. Nf3 Nc6 3. Bb5 ! {Abertura Ruy Lopez} a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. Nh4 !! {Ideia brilhante para atacar} Nxe4 ? {Um erro tático} 12. Nf5 ?? {Uma capivara, deixou passar a vantagem} Bb7 13. Qg4 !? {Lance agressivo e interessante} g6 14. Rxe4 ?! {Lance duvidoso no final} 1-0

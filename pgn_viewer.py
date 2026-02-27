@@ -7,21 +7,50 @@ import pygame
 # Configurações de cores e tamanhos
 SQUARE_SIZE = 80
 BOARD_SIZE = SQUARE_SIZE * 8
-WINDOW_SIZE = BOARD_SIZE
+BOTTOM_BAR_HEIGHT = 60
+WINDOW_WIDTH = BOARD_SIZE
+WINDOW_HEIGHT = BOARD_SIZE + BOTTOM_BAR_HEIGHT
+
 COLOR_LIGHT = (240, 217, 181)
 COLOR_DARK = (181, 136, 99)
 COLOR_HIGHLIGHT = (205, 210, 106)
+COLOR_BAR = (45, 45, 45)
+COLOR_TEXT = (240, 240, 240)
+
+# Cores para anotações
+COLOR_GREEN = (34, 139, 34)
+COLOR_RED = (178, 34, 34)
+COLOR_YELLOW = (218, 165, 32)
+
+def resource_path(relative_path):
+    """ Obtém o caminho absoluto para o recurso, funciona para dev e para PyInstaller """
+    try:
+        # PyInstaller cria uma pasta temporária e armazena o caminho em _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class PGNViewer:
     def __init__(self, pgn_path):
         self.pgn_path = pgn_path
         self.game = self.load_game(pgn_path)
-        self.moves = list(self.game.mainline_moves())
+        
+        # Guardamos os nós para acessar comentários e NAGs
+        self.nodes = list(self.game.mainline())
         self.current_move_idx = -1
         
         pygame.init()
-        self.screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption("Chess PGN Viewer")
+        
+        # Seleciona fontes de forma robusta
+        font_name = pygame.font.match_font('arial', 'liberation-sans', 'sans-serif')
+        self.font = pygame.font.Font(font_name, 22)
+        self.bold_font = pygame.font.Font(font_name, 22)
+        # Tenta aplicar negrito se a fonte permitir, caso contrário ignora
+        try: self.bold_font.set_bold(True)
+        except: pass
         
         self.piece_surfaces = self.load_or_generate_pieces()
 
@@ -39,14 +68,13 @@ class PGNViewer:
 
     def load_or_generate_pieces(self):
         surfaces = {}
-        assets_dir = "assets"
         mapping = {
             'K': 'wK.png', 'Q': 'wQ.png', 'R': 'wR.png', 'B': 'wB.png', 'N': 'wN.png', 'P': 'wP.png',
             'k': 'bK.png', 'q': 'bQ.png', 'r': 'bR.png', 'b': 'bB.png', 'n': 'bN.png', 'p': 'bP.png'
         }
         
         for symbol, filename in mapping.items():
-            path = os.path.join(assets_dir, filename)
+            path = resource_path(os.path.join("assets", filename))
             # Tenta carregar imagem real
             if os.path.exists(path):
                 try:
@@ -97,7 +125,7 @@ class PGNViewer:
             pygame.draw.line(surf, line, (s*0.35, s*0.15), (s*0.65, s*0.15), 3)
 
     def draw_board(self, board):
-        last_move = self.moves[self.current_move_idx] if self.current_move_idx >= 0 else None
+        last_move = self.nodes[self.current_move_idx].move if self.current_move_idx >= 0 else None
         for rank in range(8):
             for file in range(8):
                 square = chess.square(file, 7 - rank)
@@ -109,19 +137,79 @@ class PGNViewer:
                 if piece:
                     self.screen.blit(self.piece_surfaces[piece.symbol()], (file * SQUARE_SIZE, rank * SQUARE_SIZE))
 
+    def draw_bottom_bar(self):
+        # Desenha o fundo da barra
+        bar_rect = pygame.Rect(0, BOARD_SIZE, WINDOW_WIDTH, BOTTOM_BAR_HEIGHT)
+        pygame.draw.rect(self.screen, COLOR_BAR, bar_rect)
+        
+        if self.current_move_idx < 0:
+            return
+
+        current_node = self.nodes[self.current_move_idx]
+        
+        # Mapeamento de NAGs para Símbolos e Cores
+        # 1=!, 2=?, 3=!!, 4=??, 5=!?, 6=?!
+        nag_map = {
+            1: ("!", COLOR_GREEN),
+            2: ("?", COLOR_RED),
+            3: ("!!", COLOR_GREEN),
+            4: ("??", COLOR_RED),
+            5: ("!?", COLOR_YELLOW),
+            6: ("?!", COLOR_YELLOW)
+        }
+        
+        annotation = None
+        for nag in current_node.nags:
+            if nag in nag_map:
+                annotation = nag_map[nag]
+                break # Pega a primeira anotação encontrada
+
+        x_offset = 20
+        # Desenha Ícone de Anotação se existir
+        if annotation:
+            text, color = annotation
+            # Desenha um círculo colorido
+            circle_radius = 18
+            circle_pos = (x_offset + circle_radius, BOARD_SIZE + BOTTOM_BAR_HEIGHT // 2)
+            pygame.draw.circle(self.screen, color, circle_pos, circle_radius)
+            
+            # Texto da anotação centralizado no círculo
+            text_surf = self.bold_font.render(text, True, COLOR_TEXT)
+            text_rect = text_surf.get_rect(center=circle_pos)
+            self.screen.blit(text_surf, text_rect)
+            x_offset += circle_radius * 2 + 15
+
+        # Desenha Comentário
+        comment = current_node.comment
+        if comment:
+            # Limita o tamanho do comentário para caber na tela
+            max_width = WINDOW_WIDTH - x_offset - 20
+            comment_surf = self.font.render(comment, True, COLOR_TEXT)
+            
+            # Truncar se for muito longo
+            if comment_surf.get_width() > max_width:
+                # Simplificação: Apenas trunca visualmente ou poderíamos implementar quebra de linha
+                # Aqui vamos apenas mostrar o que couber
+                cropped_rect = pygame.Rect(0, 0, max_width, BOTTOM_BAR_HEIGHT)
+                self.screen.blit(comment_surf, (x_offset, BOARD_SIZE + (BOTTOM_BAR_HEIGHT - comment_surf.get_height()) // 2), cropped_rect)
+            else:
+                self.screen.blit(comment_surf, (x_offset, BOARD_SIZE + (BOTTOM_BAR_HEIGHT - comment_surf.get_height()) // 2))
+
     def run(self):
         clock = pygame.time.Clock()
         while True:
             board = self.game.board()
             for i in range(self.current_move_idx + 1):
-                board.push(self.moves[i])
+                board.push(self.nodes[i].move)
+            
             self.draw_board(board)
+            self.draw_bottom_bar()
             pygame.display.flip()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: return
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RIGHT and self.current_move_idx < len(self.moves)-1:
+                    if event.key == pygame.K_RIGHT and self.current_move_idx < len(self.nodes)-1:
                         self.current_move_idx += 1
                     elif event.key == pygame.K_LEFT and self.current_move_idx >= 0:
                         self.current_move_idx -= 1

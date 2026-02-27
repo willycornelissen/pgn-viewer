@@ -1,0 +1,9 @@
+[Event "Annotation Test"]
+[Site "Local"]
+[Date "2026.02.27"]
+[Round "1"]
+[White "Tester"]
+[Black "Gemini"]
+[Result "*"]
+
+1. e4 {Início clássico} e5 2. Nf3 Nc6 3. Bb5 ! {Lance sólido} a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. Nh4 !! {Lance brilhante!} Nxe4 ? {Um erro...} 12. Nf5 ?? {Uma capivara das grandes!} Bb7 13. Qg4 !? {Lance interessante...} g6 14. Rxe4 ?! {Lance duvidoso} *
