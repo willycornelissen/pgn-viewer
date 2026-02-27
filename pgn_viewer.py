@@ -7,15 +7,17 @@ import pygame
 # Configurações de cores e tamanhos
 SQUARE_SIZE = 80
 BOARD_SIZE = SQUARE_SIZE * 8
+TOP_BAR_HEIGHT = 50
 BOTTOM_BAR_HEIGHT = 60
 WINDOW_WIDTH = BOARD_SIZE
-WINDOW_HEIGHT = BOARD_SIZE + BOTTOM_BAR_HEIGHT
+WINDOW_HEIGHT = BOARD_SIZE + TOP_BAR_HEIGHT + BOTTOM_BAR_HEIGHT
 
 COLOR_LIGHT = (240, 217, 181)
 COLOR_DARK = (181, 136, 99)
 COLOR_HIGHLIGHT = (205, 210, 106)
 COLOR_BAR = (45, 45, 45)
 COLOR_TEXT = (240, 240, 240)
+COLOR_INFO = (180, 180, 180)
 
 # Cores para anotações
 COLOR_GREEN = (34, 139, 34)
@@ -47,6 +49,7 @@ class PGNViewer:
         # Seleciona fontes de forma robusta
         font_name = pygame.font.match_font('arial', 'liberation-sans', 'sans-serif')
         self.font = pygame.font.Font(font_name, 22)
+        self.small_font = pygame.font.Font(font_name, 16)
         self.bold_font = pygame.font.Font(font_name, 22)
         # Tenta aplicar negrito se a fonte permitir, caso contrário ignora
         try: self.bold_font.set_bold(True)
@@ -132,14 +135,41 @@ class PGNViewer:
                 color = COLOR_LIGHT if (rank + file) % 2 == 0 else COLOR_DARK
                 if last_move and (square == last_move.from_square or square == last_move.to_square):
                     color = COLOR_HIGHLIGHT
-                pygame.draw.rect(self.screen, color, (file * SQUARE_SIZE, rank * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+                
+                # Ajusta a posição Y somando TOP_BAR_HEIGHT
+                x = file * SQUARE_SIZE
+                y = rank * SQUARE_SIZE + TOP_BAR_HEIGHT
+                pygame.draw.rect(self.screen, color, (x, y, SQUARE_SIZE, SQUARE_SIZE))
+                
                 piece = board.piece_at(square)
                 if piece:
-                    self.screen.blit(self.piece_surfaces[piece.symbol()], (file * SQUARE_SIZE, rank * SQUARE_SIZE))
+                    self.screen.blit(self.piece_surfaces[piece.symbol()], (x, y))
+
+    def draw_top_bar(self):
+        # Fundo da barra superior
+        bar_rect = pygame.Rect(0, 0, WINDOW_WIDTH, TOP_BAR_HEIGHT)
+        pygame.draw.rect(self.screen, COLOR_BAR, bar_rect)
+        
+        headers = self.game.headers
+        white = headers.get("White", "Brancas")
+        black = headers.get("Black", "Pretas")
+        event = headers.get("Event", "?")
+        date = headers.get("Date", "????.??.??")
+        
+        # Renderiza Nomes dos Jogadores
+        player_text = f"● {white} vs ● {black}"
+        player_surf = self.bold_font.render(player_text, True, COLOR_TEXT)
+        self.screen.blit(player_surf, (20, 10))
+        
+        # Renderiza Informações Extras (Evento e Data)
+        info_text = f"{event} | {date}"
+        info_surf = self.small_font.render(info_text, True, COLOR_INFO)
+        self.screen.blit(info_surf, (20, TOP_BAR_HEIGHT - 20))
 
     def draw_bottom_bar(self):
         # Desenha o fundo da barra
-        bar_rect = pygame.Rect(0, BOARD_SIZE, WINDOW_WIDTH, BOTTOM_BAR_HEIGHT)
+        y_pos = BOARD_SIZE + TOP_BAR_HEIGHT
+        bar_rect = pygame.Rect(0, y_pos, WINDOW_WIDTH, BOTTOM_BAR_HEIGHT)
         pygame.draw.rect(self.screen, COLOR_BAR, bar_rect)
         
         if self.current_move_idx < 0:
@@ -170,7 +200,7 @@ class PGNViewer:
             text, color = annotation
             # Desenha um círculo colorido
             circle_radius = 18
-            circle_pos = (x_offset + circle_radius, BOARD_SIZE + BOTTOM_BAR_HEIGHT // 2)
+            circle_pos = (x_offset + circle_radius, y_pos + BOTTOM_BAR_HEIGHT // 2)
             pygame.draw.circle(self.screen, color, circle_pos, circle_radius)
             
             # Texto da anotação centralizado no círculo
@@ -188,12 +218,10 @@ class PGNViewer:
             
             # Truncar se for muito longo
             if comment_surf.get_width() > max_width:
-                # Simplificação: Apenas trunca visualmente ou poderíamos implementar quebra de linha
-                # Aqui vamos apenas mostrar o que couber
                 cropped_rect = pygame.Rect(0, 0, max_width, BOTTOM_BAR_HEIGHT)
-                self.screen.blit(comment_surf, (x_offset, BOARD_SIZE + (BOTTOM_BAR_HEIGHT - comment_surf.get_height()) // 2), cropped_rect)
+                self.screen.blit(comment_surf, (x_offset, y_pos + (BOTTOM_BAR_HEIGHT - comment_surf.get_height()) // 2), cropped_rect)
             else:
-                self.screen.blit(comment_surf, (x_offset, BOARD_SIZE + (BOTTOM_BAR_HEIGHT - comment_surf.get_height()) // 2))
+                self.screen.blit(comment_surf, (x_offset, y_pos + (BOTTOM_BAR_HEIGHT - comment_surf.get_height()) // 2))
 
     def run(self):
         clock = pygame.time.Clock()
@@ -202,6 +230,7 @@ class PGNViewer:
             for i in range(self.current_move_idx + 1):
                 board.push(self.nodes[i].move)
             
+            self.draw_top_bar()
             self.draw_board(board)
             self.draw_bottom_bar()
             pygame.display.flip()
